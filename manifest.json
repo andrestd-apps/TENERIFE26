@@ -1,0 +1,17 @@
+{
+  "name": "Tenerife 26",
+  "short_name": "Tenerife 26",
+  "description": "Guía de viaje compartida: parking, vuelos, alojamientos, coche, itinerario y lugares.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F7F3EC",
+  "theme_color": "#432C7A",
+  "orientation": "portrait",
+  "lang": "es",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

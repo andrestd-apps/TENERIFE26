@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Tenerife 26</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#432C7A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Tenerife 26">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Firebase (compat) + SortableJS por CDN HTTPS -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+
+  <style>
+    :root{
+      --purple:      #432C7A;
+      --purple-deep: #2E1A5E;
+      --purple-soft: #5B3E9E;
+      --cream:       #F7F3EC;
+      --card:        #F1EBDF;
+      --line:        #E4DCCC;
+      --ink:         #2F2C33;
+      --grey:        #8B8781;
+      --orange:      #F58C28;
+      --orange-ink:  #B35F12;
+      --orange-soft: #FDEBD7;
+      --blue:        #2C5BE0;
+      --blue-soft:   #E4EAFB;
+      --red:         #B23B3B;
+      --white:       #FFFFFF;
+      --radius:      20px;
+      --radius-sm:   14px;
+      --nav-h:       76px;
+    }
+
+    *{ margin:0; padding:0; box-sizing:border-box; }
+    [hidden]{ display:none !important; }
+    html{ -webkit-text-size-adjust:100%; }
+    body{
+      font-family:'Nunito', system-ui, sans-serif;
+      background:var(--cream);
+      color:var(--ink);
+      font-size:16px;
+      line-height:1.5;
+      min-height:100vh;
+      -webkit-tap-highlight-color:transparent;
+    }
+    body.noscroll{ overflow:hidden; }
+    h1,h2,h3,.display{ font-family:'Baloo 2', 'Nunito', sans-serif; }
+    a{ color:var(--blue); }
+    button{ font-family:inherit; cursor:pointer; color:inherit; }
+    :focus-visible{ outline:3px solid var(--blue); outline-offset:2px; border-radius:6px; }
+
+    #app{ padding-bottom:calc(var(--nav-h) + 24px + env(safe-area-inset-bottom, 0px)); }
+
+    /* ---------- Cabecera curvada ---------- */
+    .hero{
+      background:linear-gradient(180deg, var(--purple-soft) 0%, var(--purple) 55%, var(--purple-deep) 100%);
+      color:var(--white);
+      padding:calc(28px + env(safe-area-inset-top, 0px)) 24px 54px;
+      position:relative; overflow:hidden;
+    }
+    .hero::before, .login::before{
+      content:""; position:absolute; inset:0; pointer-events:none;
+      background-image:
+        radial-gradient(circle 2px at 18% 24%, rgba(247,243,236,.85) 98%, transparent),
+        radial-gradient(circle 1.5px at 72% 16%, rgba(247,243,236,.6) 98%, transparent),
+        radial-gradient(circle 2.5px at 86% 40%, rgba(247,243,236,.5) 98%, transparent),
+        radial-gradient(circle 1.5px at 40% 12%, rgba(247,243,236,.5) 98%, transparent),
+        radial-gradient(circle 1.5px at 60% 70%, rgba(247,243,236,.35) 98%, transparent);
+    }
+    .hero::after{
+      content:""; position:absolute; left:-12%; right:-12%; bottom:-30px;
+      height:60px; background:var(--cream); border-radius:50% 50% 0 0;
+    }
+    .hero > *{ position:relative; max-width:560px; margin-left:auto; margin-right:auto; }
+    .eyebrow{
+      font-size:12px; font-weight:800; letter-spacing:.18em;
+      text-transform:uppercase; color:#CBB9F2; margin-bottom:6px;
+    }
+    .hero h1{ font-size:34px; font-weight:800; line-height:1.1; letter-spacing:-0.01em; }
+    .hero .sub{ margin-top:6px; font-weight:600; color:#DCD2F0; font-size:15px; }
+    .hero .pill{
+      display:inline-block; margin-top:14px; background:rgba(247,243,236,.14);
+      border:1px solid rgba(247,243,236,.25); color:var(--white);
+      border-radius:999px; padding:6px 14px; font-size:13px; font-weight:800;
+    }
+    .hero--compact{ padding-bottom:44px; }
+    .hero--compact h1{ font-size:26px; }
+    .hero--compact .sub, .hero--compact .pill{ display:none; }
+
+    main{ max-width:560px; margin:0 auto; padding:16px 20px 8px; }
+
+    .section{ display:none; }
+    .section.active{ display:block; animation:fadein .25s ease; }
+    @keyframes fadein{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:none;} }
+    @media (prefers-reduced-motion: reduce){ .section.active{ animation:none; } }
+
+    h2{ font-size:24px; font-weight:800; letter-spacing:-0.01em; margin:22px 0 14px; line-height:1.2; }
+    .section > h2:first-child, .section > .head-row:first-child{ margin-top:6px; }
+    .head-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:22px 0 14px; }
+    .head-row h2{ margin:0; }
+    .kicker{
+      font-size:12px; font-weight:800; letter-spacing:.18em; text-transform:uppercase;
+      color:var(--grey); margin:24px 0 10px;
+    }
+    .hint{ color:var(--grey); font-size:14px; font-weight:600; margin:-6px 0 16px; }
+    .muted{ color:var(--grey); font-size:14px; font-weight:600; }
+
+    /* ---------- Tarjetas ---------- */
+    .card{
+      display:block; width:100%; text-align:left;
+      background:var(--card); border-radius:var(--radius); border:0;
+      padding:18px; margin-bottom:14px;
+    }
+    .card h3{ font-size:18px; font-weight:800; margin-bottom:2px; line-height:1.25; }
+    .card p{ overflow-wrap:anywhere; }
+    .card-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+    .card-head > div{ min-width:0; }
+    .card--purple{
+      background:linear-gradient(135deg, var(--purple-soft), var(--purple-deep));
+      color:var(--white);
+    }
+    .card--purple .muted{ color:#CBB9F2; }
+    .card--purple a{ color:#FDD9AE; }
+    .card--empty{
+      border:2px dashed var(--line); background:transparent; color:var(--grey);
+      font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:center; gap:8px;
+      padding:20px; text-align:center;
+    }
+    .card--empty svg{ width:18px; height:18px; }
+    .card--warn{ background:var(--orange-soft); }
+    .card--warn h3{ color:var(--orange-ink); font-size:16px; }
+    .card--warn ul{ margin:6px 0 0 18px; }
+    .card--warn li{ font-size:14px; font-weight:600; margin-bottom:4px; }
+
+    .badge{
+      display:inline-block; background:var(--white); color:var(--blue);
+      font-size:12px; font-weight:800; border-radius:999px; padding:3px 12px; margin-bottom:8px;
+    }
+    .tag{
+      display:inline-block; background:var(--orange-soft); color:var(--orange-ink);
+      font-size:12px; font-weight:800; border-radius:999px; padding:2px 10px; margin-top:4px;
+    }
+
+    .icon-btn{
+      border:0; background:rgba(67,44,122,.09); color:var(--purple);
+      width:40px; height:40px; border-radius:50%; flex:none;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .icon-btn svg{ width:18px; height:18px; }
+    .card--purple .icon-btn{ background:rgba(255,255,255,.16); color:var(--white); }
+
+    .info{ display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin-top:12px; font-size:14px; }
+    .info dt{ color:var(--grey); font-weight:700; }
+    .info dd{ font-weight:700; overflow-wrap:anywhere; }
+    .card--purple .info dt{ color:#CBB9F2; }
+    .links{ display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:10px; }
+    .links a, a.maps{ font-size:13px; font-weight:800; text-decoration:none; }
+    a.maps{ display:table; margin-top:6px; }
+    .links a.maps{ display:inline-block; margin-top:0; }
+
+    /* ---------- Botones ---------- */
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center; gap:6px;
+      border:0; border-radius:999px; padding:12px 20px;
+      font:800 15px/1 'Nunito', system-ui, sans-serif;
+      background:var(--card); color:var(--purple);
+      transition:transform .1s ease;
+    }
+    .btn:active{ transform:scale(.97); }
+    .btn svg{ width:16px; height:16px; }
+    .btn--primary{ background:var(--purple); color:var(--white); }
+    .btn--orange{ background:var(--orange); color:var(--white); }
+    .btn--ghost{ background:transparent; color:var(--purple); box-shadow:inset 0 0 0 2px var(--line); }
+    .btn--danger{ background:transparent; color:var(--red); }
+    .btn--small{ padding:9px 14px; font-size:13px; }
+    .btn--block{ width:100%; }
+    .btn[disabled]{ opacity:.6; }
+    .btn-link{ background:none; border:0; color:var(--blue); font-weight:700; font-size:14px; padding:10px; }
+
+    /* ---------- Cuenta atrás ---------- */
+    .count{ display:flex; gap:10px; margin-top:14px; }
+    .count div{ flex:1; background:rgba(247,243,236,.12); border-radius:var(--radius-sm); text-align:center; padding:10px 4px; }
+    .count b{ display:block; font-family:'Baloo 2'; font-size:26px; line-height:1.1; }
+    .count span{ font-size:11px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:#CBB9F2; }
+
+    /* ---------- Eventos de logística ---------- */
+    .ev{
+      display:flex; gap:12px; align-items:center; width:100%; text-align:left;
+      background:var(--card); border:0; border-radius:var(--radius-sm);
+      padding:12px 14px; margin-bottom:10px;
+    }
+    .ev-ico{
+      width:40px; height:40px; border-radius:50%; flex:none;
+      background:var(--orange); color:var(--white);
+      display:flex; align-items:center; justify-content:center;
+    }
+    .ev-ico svg{ width:20px; height:20px; }
+    .ev-txt{ min-width:0; }
+    .ev-when{ font-family:'Baloo 2'; font-weight:800; color:var(--purple); font-size:14px; line-height:1.2; }
+    .ev b{ display:block; font-weight:800; line-height:1.3; }
+    .ev span{ display:block; color:var(--grey); font-size:13px; font-weight:600; }
+
+    /* ---------- Vuelos ---------- */
+    .fl-route{ display:flex; align-items:center; gap:12px; margin:14px 0 2px; }
+    .fl-route .t{ font-family:'Baloo 2'; font-weight:800; font-size:30px; line-height:1; }
+    .fl-route .c{ font-size:13px; font-weight:800; color:#CBB9F2; margin-top:4px; }
+    .fl-route .end{ text-align:right; }
+    .fl-line{ flex:1; height:2px; background:rgba(247,243,236,.3); position:relative; }
+    .fl-line svg{ position:absolute; left:50%; top:50%; width:20px; height:20px; transform:translate(-50%,-50%) rotate(45deg); color:#FDD9AE; background:var(--purple); border-radius:50%; padding:2px; }
+
+    /* ---------- Itinerario (línea de tiempo) ---------- */
+    .day{ margin-bottom:24px; }
+    .day-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin-bottom:10px; }
+    .day-head .kicker{ margin:0 0 2px; }
+    .day-head h3{ font-size:20px; font-weight:800; line-height:1.2; }
+    .day--today .day-head h3{ color:var(--purple); }
+    .day--today .day-head .kicker{ color:var(--orange-ink); }
+
+    .stops{ list-style:none; min-height:56px; border-radius:var(--radius-sm); }
+    .stops:empty{ border:2px dashed var(--line); display:flex; align-items:center; justify-content:center; }
+    .stops:empty::after{ content:'Sin paradas todavía'; color:var(--grey); font-weight:700; font-size:14px; }
+    .stop{ display:flex; gap:10px; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+    .stop-time{
+      font-family:'Baloo 2'; font-weight:800; font-size:15px; color:var(--purple);
+      width:44px; flex:none; text-align:right; padding-top:15px;
+    }
+    .stop-rail{ position:relative; width:14px; flex:none; display:flex; justify-content:center; }
+    .stop-rail::before{ content:""; position:absolute; top:0; bottom:0; width:3px; background:var(--line); border-radius:3px; }
+    .stop:first-child .stop-rail::before{ top:22px; }
+    .stop:last-child .stop-rail::before{ bottom:calc(100% - 22px); }
+    .stop-dot{ position:relative; width:14px; height:14px; border-radius:50%; background:var(--white); border:4px solid var(--purple); margin-top:20px; flex:none; }
+    .stop-card{
+      flex:1; min-width:0; background:var(--card); border-radius:var(--radius-sm);
+      margin-bottom:10px; cursor:pointer; overflow:hidden;
+    }
+    .stop-img{ display:block; width:100%; height:150px; border:0; padding:0; background:var(--line); position:relative; }
+    .stop-img img{ width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; -webkit-touch-callout:none; }
+    .stop-img.is-broken{ height:44px; }
+    .stop-img.is-broken img{ display:none; }
+    .stop-img.is-broken::after{ content:'No se pudo cargar la imagen'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--grey); font-size:13px; font-weight:700; }
+    .stop-body{ padding:12px 14px; }
+    .stop-body b{ display:block; font-weight:800; font-size:16px; line-height:1.3; }
+    .stop-body p{ color:var(--grey); font-size:14px; font-weight:600; margin-top:3px; overflow-wrap:anywhere; }
+    .stop--ghost .stop-card{ opacity:.4; background:var(--orange-soft); }
+    .stop--chosen .stop-card{ box-shadow:0 10px 28px rgba(46,26,94,.28); }
+    .stop--drag{ opacity:.96; }
+    body.is-dragging{ -webkit-user-select:none; user-select:none; }
+
+    /* ---------- Lugares ---------- */
+    .chips{ display:flex; gap:8px; overflow-x:auto; margin:0 -20px 12px; padding:0 20px 4px; scrollbar-width:none; }
+    .chips::-webkit-scrollbar{ display:none; }
+    .chip{ flex:none; border:0; border-radius:999px; padding:8px 14px; font-weight:800; font-size:13px; background:var(--card); color:var(--ink); }
+    .chip.active{ background:var(--purple); color:var(--white); }
+    .switch-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; font-weight:700; font-size:14px; color:var(--grey); }
+    .switch{ width:50px; height:30px; border-radius:999px; background:#D9D0BF; position:relative; border:0; flex:none; transition:background .2s; }
+    .switch::after{ content:''; position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%; background:var(--white); transition:left .2s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+    .switch[aria-checked="true"]{ background:var(--purple); }
+    .switch[aria-checked="true"]::after{ left:23px; }
+    .place{ cursor:pointer; }
+    .place b{ display:block; font-weight:800; font-size:16px; line-height:1.3; }
+    .place p{ color:var(--grey); font-size:14px; font-weight:600; margin-top:4px; }
+
+    /* ---------- Hoja de edición ---------- */
+    .sheet{ position:fixed; inset:0; z-index:100; display:flex; align-items:flex-end; justify-content:center; }
+    .sheet-backdrop{ position:absolute; inset:0; background:rgba(46,26,94,.45); animation:fadein .2s ease; }
+    .sheet-panel{
+      position:relative; width:100%; max-width:560px; max-height:92vh; max-height:92dvh;
+      overflow:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+      background:var(--cream); border-radius:24px 24px 0 0;
+      padding:10px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+      animation:sheetup .25s ease;
+    }
+    @keyframes sheetup{ from{ transform:translateY(40px); opacity:.5; } to{ transform:none; opacity:1; } }
+    @media (min-width:640px){ .sheet{ align-items:center; } .sheet-panel{ border-radius:24px; } }
+    .sheet-grab{ width:44px; height:5px; border-radius:9px; background:#D9D0BF; margin:4px auto 6px; }
+    .sheet-panel h2{ margin:10px 0 16px; }
+    .sheet-actions{ display:flex; gap:10px; margin-top:20px; flex-wrap:wrap; }
+    .sheet-actions .btn--danger{ margin-left:auto; }
+
+    .form-grid{ display:flex; flex-wrap:wrap; gap:14px 12px; }
+    .field{ display:flex; flex-direction:column; gap:6px; flex:1 1 100%; min-width:0; }
+    .field--half{ flex:1 1 calc(50% - 6px); }
+    .field > span{ font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--grey); }
+    .field input, .field textarea, .field select{
+      width:100%; min-height:48px; display:block;
+      font:600 16px/1.35 'Nunito', system-ui, sans-serif; color:var(--ink);
+      background:var(--white); border:2px solid var(--line); border-radius:var(--radius-sm);
+      padding:12px 14px; -webkit-appearance:none; appearance:none; text-align:left;
+    }
+    .field input::-webkit-date-and-time-value{ text-align:left; }
+    .field textarea{ resize:vertical; min-height:84px; }
+    .field select{ background-image:linear-gradient(45deg, transparent 50%, var(--grey) 50%), linear-gradient(135deg, var(--grey) 50%, transparent 50%); background-position:calc(100% - 20px) 52%, calc(100% - 14px) 52%; background-size:6px 6px; background-repeat:no-repeat; padding-right:36px; }
+    .field input:focus, .field textarea:focus, .field select:focus{ border-color:var(--purple); outline:none; }
+    .field small{ color:var(--grey); font-size:12px; font-weight:600; }
+    .form-error{ color:var(--red); font-weight:700; font-size:14px; margin-top:12px; }
+    .img-preview{ margin-top:12px; border-radius:var(--radius-sm); overflow:hidden; background:var(--line); }
+    .img-preview img{ display:block; width:100%; max-height:200px; object-fit:cover; }
+
+    /* ---------- Login ---------- */
+    .login{
+      position:fixed; inset:0; z-index:150; overflow:auto;
+      background:linear-gradient(180deg, var(--purple-soft) 0%, var(--purple) 55%, var(--purple-deep) 100%);
+      display:flex; align-items:center; justify-content:center;
+      padding:calc(24px + env(safe-area-inset-top, 0px)) 20px calc(24px + env(safe-area-inset-bottom, 0px));
+    }
+    .login-card{ position:relative; width:100%; max-width:400px; background:var(--cream); border-radius:28px; padding:28px 22px 18px; }
+    .login-card .eyebrow{ color:var(--grey); }
+    .login-card h1{ font-size:32px; font-weight:800; color:var(--purple); line-height:1.1; margin-bottom:6px; }
+    .login-card form{ margin-top:18px; display:flex; flex-direction:column; gap:14px; }
+    .login-msg{ font-size:14px; font-weight:700; color:var(--purple); }
+
+    /* ---------- Navegación inferior ---------- */
+    .tabbar{
+      position:fixed; left:0; right:0; bottom:0; z-index:50;
+      background:rgba(247,243,236,.94); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+      border-top:1px solid var(--line);
+      padding:6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    }
+    .tabbar-inner{ max-width:560px; margin:0 auto; display:flex; justify-content:space-around; }
+    .tabbar button{
+      flex:1; min-width:0; background:none; border:0; padding:4px 0;
+      display:flex; flex-direction:column; align-items:center; gap:3px;
+      font-weight:800; font-size:11px; color:var(--grey);
+    }
+    .tabbar .ico{ display:flex; align-items:center; justify-content:center; width:52px; height:32px; border-radius:999px; transition:background .2s, color .2s; }
+    .tabbar svg{ width:22px; height:22px; }
+    .tabbar button.active{ color:var(--purple); }
+    .tabbar button.active .ico{ background:var(--purple); color:var(--white); }
+
+    /* ---------- Lightbox y aviso de estado ---------- */
+    .lightbox{ position:fixed; inset:0; z-index:200; background:rgba(20,12,40,.92); display:flex; align-items:center; justify-content:center; padding:20px; }
+    .lightbox img{ max-width:100%; max-height:100%; border-radius:12px; object-fit:contain; }
+    .sync-badge{
+      position:fixed; left:50%; transform:translateX(-50%);
+      bottom:calc(var(--nav-h) + 14px + env(safe-area-inset-bottom, 0px)); z-index:120;
+      font:700 13px/1.3 'Nunito', system-ui, sans-serif; padding:8px 14px; border-radius:999px;
+      background:#222; color:#fff; opacity:0; transition:opacity .3s; pointer-events:none;
+      max-width:calc(100% - 32px); text-align:center; box-shadow:0 2px 10px rgba(0,0,0,.2);
+    }
+    .sync-badge.show{ opacity:.95; }
+    .version{ text-align:center; color:var(--grey); font-size:12px; font-weight:700; margin:20px 0 8px; }
+  </style>
+</head>
+<body>
+
+  <!-- Pantalla de acceso -->
+  <div id="login" class="login" hidden>
+    <div class="login-card">
+      <div class="eyebrow">Tu viaje</div>
+      <h1 id="loginTitle">Tenerife 26</h1>
+      <p class="muted">Inicia sesión para ver y editar el viaje.</p>
+      <form id="loginForm" novalidate>
+        <label class="field"><span>Email</span>
+          <input type="email" id="loginEmail" autocomplete="username" inputmode="email" autocapitalize="off" required>
+        </label>
+        <label class="field"><span>Contraseña</span>
+          <input type="password" id="loginPass" autocomplete="current-password" required>
+        </label>
+        <p id="loginMsg" class="login-msg" hidden></p>
+        <button class="btn btn--primary btn--block" type="submit" id="loginBtn">Entrar</button>
+        <button class="btn-link" type="button" id="forgotBtn">He olvidado la contraseña</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div id="app" hidden>
+    <header class="hero" id="hero"></header>
+    <main>
+      <section class="section" id="tab-hoy"></section>
+      <section class="section" id="tab-itinerario"></section>
+      <section class="section" id="tab-lugares"></section>
+      <section class="section" id="tab-logistica"></section>
+      <section class="section" id="tab-ajustes"></section>
+    </main>
+    <nav class="tabbar" aria-label="Secciones">
+      <div class="tabbar-inner" id="tabbar"></div>
+    </nav>
+  </div>
+
+  <!-- Hoja de edición -->
+  <div id="sheet" class="sheet" hidden>
+    <div class="sheet-backdrop" data-close></div>
+    <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <div class="sheet-grab"></div>
+      <h2 id="sheetTitle"></h2>
+      <form id="sheetForm" novalidate></form>
+    </div>
+  </div>
+
+  <div id="lightbox" class="lightbox" hidden><img id="lightboxImg" alt="" referrerpolicy="no-referrer"></div>
+  <div id="syncBadge" class="sync-badge" role="status" aria-live="polite"></div>
+  <datalist id="tagList"></datalist>
+
+<script>
+'use strict';
+
+/* =====================================================================
+   CONFIGURACIÓN
+   ===================================================================== */
+const APP = {
+  version: '1.0.0',
+  storeKey: 'tn26-state',
+  uiKey: 'tn26-ui',
+  authKey: 'tn26-auth',
+  defaultName: 'Tenerife 26'
+};
+
+// La apiKey de Firebase web es pública por diseño: lo que protege los datos
+// son las reglas de Firestore (solo las cuentas autorizadas pueden leer/escribir).
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCc4gycwptZPwdDjFx3L5F-tdeRDoMBB1g",
+  authDomain: "tenerife-26.firebaseapp.com",
+  projectId: "tenerife-26",
+  storageBucket: "tenerife-26.firebasestorage.app",
+  messagingSenderId: "322909061729",
+  appId: "1:322909061729:web:8be78f86302b84000ea020"
+};
+const DOC_COLLECTION = 'trips';
+const DOC_ID = 'main';
+
+const DEFAULT_TAGS = ['Restaurante', 'Bar', 'Cafetería', 'Playa', 'Mirador', 'Tienda', 'Visita'];
+
+/* Entidades fijas (siempre existen). El resto (alojamientos, paradas, lugares)
+   se crean con id propio. Todas llevan "u" = marca de tiempo de la última edición. */
+const FIXED = {
+  'trip':        { id:'trip', t:'trip', name:APP.defaultName, destination:'Tenerife', start:'', end:'' },
+  'parking':     { id:'parking', t:'parking' },
+  'flight-out':  { id:'flight-out', t:'flight' },
+  'flight-back': { id:'flight-back', t:'flight' },
+  'car':         { id:'car', t:'car' }
+};
+
+/* =====================================================================
+   ESTADO CENTRAL
+   ===================================================================== */
+const state = { ent: new Map() };          // id -> entidad
+const ui = { tab: 'hoy', placeTag: '', placeGroup: false };
+let currentEmail = '';
+let syncLine = 'Conectando…';
+
+function ensureDefaults() {
+  for (const id in FIXED) {
+    if (!state.ent.has(id)) state.ent.set(id, Object.assign({}, FIXED[id], { u: 0 }));
+  }
+}
+
+/** Objeto plano serializable con todo el estado. */
+function buildStateSnapshot() {
+  return { v: 1, ent: Array.from(state.ent.values()) };
+}
+
+/** Vuelca un objeto plano al estado (reconstruye el Map). */
+function applyStateSnapshot(obj) {
+  state.ent = new Map();
+  const list = obj && Array.isArray(obj.ent) ? obj.ent : [];
+  list.forEach(e => { if (e && typeof e.id === 'string') state.ent.set(e.id, e); });
+  ensureDefaults();
+}
+
+function saveState() {
+  try { localStorage.setItem(APP.storeKey, JSON.stringify(buildStateSnapshot())); } catch (e) {}
+  if (!sync.applyingRemote) sync.schedulePush();
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(APP.storeKey);
+    applyStateSnapshot(raw ? JSON.parse(raw) : null);
+  } catch (e) { applyStateSnapshot(null); }
+}
+function saveUI() { try { localStorage.setItem(APP.uiKey, JSON.stringify(ui)); } catch (e) {} }
+function loadUI() {
+  try { Object.assign(ui, JSON.parse(localStorage.getItem(APP.uiKey) || '{}')); } catch (e) {}
+  if (!TABS.some(t => t.id === ui.tab)) ui.tab = 'hoy';
+}
+
+function get(id) { return state.ent.get(id); }
+function live(type) { return Array.from(state.ent.values()).filter(e => e.t === type && !e.deleted); }
+function upsert(e) {
+  const prev = state.ent.get(e.id);
+  e.u = Math.max(Date.now(), ((prev && prev.u) || 0) + 1);
+  state.ent.set(e.id, e);
+}
+function removeEnt(id) {
+  const e = get(id); if (!e) return;
+  upsert({ id: id, t: e.t, deleted: true });   // "lápida": así el borrado también se sincroniza
+}
+function uid(prefix) { return prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function commit() { saveState(); renderAll(); }
+
+function hasData(e) {
+  if (!e) return false;
+  return Object.keys(e).some(k => !['id', 't', 'u', 'deleted'].includes(k) && String(e[k] || '').trim() !== '');
+}
+
+/* =====================================================================
+   UTILIDADES
+   ===================================================================== */
+const $ = (s, r) => (r || document).querySelector(s);
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+function nl2br(s) { return esc(s).replace(/\n/g, '<br>'); }
+function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+function safeUrl(u) {
+  try { const x = new URL(String(u || '').trim()); return (x.protocol === 'https:' || x.protocol === 'http:') ? x.href : ''; }
+  catch (e) { return ''; }
+}
+function mapsUrl(q) { return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q); }
+function mapsLink(address, fallbackName) {
+  const dest = (get('trip') || {}).destination || '';
+  const q = (address || '').trim() || ((fallbackName || '').trim() ? (fallbackName.trim() + (dest ? ' ' + dest : '')) : '');
+  return q ? '<a class="maps" href="' + esc(mapsUrl(q)) + '" target="_blank" rel="noopener">Ver en Maps</a>' : '';
+}
+function pad(n) { return String(n).padStart(2, '0'); }
+function isoDate(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function parseDate(s) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s || '')) return null;
+  const p = s.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]);
+}
+function todayISO() { return isoDate(new Date()); }
+function dt(date, time) {
+  const d = parseDate(date); if (!d) return null;
+  if (/^\d{2}:\d{2}/.test(time || '')) { const p = time.split(':').map(Number); d.setHours(p[0], p[1], 0, 0); }
+  return d;
+}
+const fmtLong  = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+const fmtShort = new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+const fmtDay   = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+function fDate(iso, f) { const d = parseDate(iso); return d ? (f || fmtShort).format(d) : ''; }
+function rangeLabel(a, b) {
+  const da = parseDate(a), db = parseDate(b); if (!da || !db) return '';
+  try { return fmtDay.formatRange(da, db); } catch (e) { return fmtDay.format(da) + ' – ' + fmtDay.format(db); }
+}
+const MAX_DAYS = 60;
+function tripDays() {
+  const t = get('trip'); const s = parseDate(t.start), e = parseDate(t.end);
+  if (!s || !e || e < s) return [];
+  const out = []; const d = new Date(s);
+  while (d <= e && out.length < MAX_DAYS) { out.push(isoDate(d)); d.setDate(d.getDate() + 1); }
+  return out;
+}
+function plural(n, a, b) { return n + ' ' + (n === 1 ? a : b); }
+
+/* Iconos (trazo, heredan el color) */
+const ICON_PATHS = {
+  home:    '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
+  route:   '<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h8.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H16"/>',
+  pin:     '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  bag:     '<rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/>',
+  sliders: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+  plane:   '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+  parking: '<rect x="4" y="3" width="16" height="18" rx="3"/><path d="M10 17V7h3a3 3 0 0 1 0 6h-3"/>',
+  bed:     '<path d="M3 19V6M3 14h18v5M21 14a3 3 0 0 0-3-3h-7v3"/><circle cx="7" cy="11" r="1.6"/>',
+  key:     '<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M16 7l3 3"/>',
+  edit:    '<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/>',
+  plus:    '<path d="M12 5v14M5 12h14"/>'
+};
+function ICON(name) {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICON_PATHS[name] || '') + '</svg>';
+}
+function editBtn(type, id, label) {
+  return '<button class="icon-btn" type="button" data-edit="' + type + '" data-id="' + esc(id) + '" aria-label="' + esc(label || 'Editar') + '">' + ICON('edit') + '</button>';
+}
+function emptyCard(text, type, id, day) {
+  return '<button class="card card--empty" type="button" data-edit="' + type + '" data-id="' + esc(id || '') + '"' +
+    (day != null ? ' data-day="' + esc(day) + '"' : '') + '>' + ICON('plus') + ' ' + esc(text) + '</button>';
+}
+function infoHTML(rows) {
+  const r = rows.filter(x => String(x[1] || '').trim() !== '');
+  if (!r.length) return '';
+  return '<dl class="info">' + r.map(x => '<dt>' + esc(x[0]) + '</dt><dd>' + nl2br(x[1]) + '</dd>').join('') + '</dl>';
+}
+function whenText(date, time) {
+  return [cap(fDate(date)), time].filter(Boolean).join(' · ');
+}
+function telLink(phone) {
+  const p = String(phone || '').replace(/[^\d+]/g, '');
+  return p ? '<a href="tel:' + esc(p) + '">Llamar</a>' : '';
+}
+function mailLink(email) {
+  const m = String(email || '').trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m) ? '<a href="mailto:' + esc(m) + '">Email</a>' : '';
+}
+
+/* =====================================================================
+   FORMULARIOS (definición por tipo)
+   ===================================================================== */
+function dayOptions(val) {
+  const days = tripDays();
+  const opts = days.map((d, i) => ({ v: d, l: 'Día ' + (i + 1) + ' · ' + cap(fDate(d)) }));
+  if (val && !days.includes(val)) opts.push({ v: val, l: cap(fDate(val)) + ' (fuera del viaje)' });
+  opts.push({ v: '', l: 'Sin día asignado' });
+  return opts;
+}
+
+const SCHEMAS = {
+  trip: { title: 'Datos del viaje', fields: [
+    { k:'name', label:'Nombre del viaje', type:'text', required:true },
+    { k:'destination', label:'Destino', type:'text' },
+    { k:'start', label:'Primer día', type:'date', half:true },
+    { k:'end', label:'Último día', type:'date', half:true }
+  ]},
+  parking: { title: 'Parking del aeropuerto', fields: [
+    { k:'name', label:'Nombre del parking', type:'text' },
+    { k:'address', label:'Dirección / ubicación', type:'text', hint:'Se abrirá en Google Maps.' },
+    { k:'inDate', label:'Entrada · día', type:'date', half:true },
+    { k:'inTime', label:'Entrada · hora', type:'time', half:true },
+    { k:'outDate', label:'Salida · día', type:'date', half:true },
+    { k:'outTime', label:'Salida · hora', type:'time', half:true },
+    { k:'hours', label:'Horario del parking', type:'textarea', placeholder:'Ej.: abierto 24 h · lanzadera cada 15 min' },
+    { k:'phone', label:'Teléfono', type:'tel' },
+    { k:'notes', label:'Notas', type:'textarea' }
+  ]},
+  flight: { title: 'Vuelo', fields: [
+    { k:'airline', label:'Aerolínea', type:'text', half:true },
+    { k:'number', label:'Nº de vuelo', type:'text', half:true, placeholder:'Ej.: IB1234' },
+    { k:'from', label:'Origen', type:'text', half:true, placeholder:'Ej.: MAD' },
+    { k:'to', label:'Destino', type:'text', half:true, placeholder:'Ej.: TFN' },
+    { k:'date', label:'Fecha', type:'date', half:true },
+    { k:'terminal', label:'Terminal', type:'text', half:true },
+    { k:'dep', label:'Salida', type:'time', half:true },
+    { k:'arr', label:'Llegada', type:'time', half:true },
+    { k:'boarding', label:'Embarque', type:'time', half:true },
+    { k:'gateClose', label:'Cierre de puertas', type:'time', half:true },
+    { k:'seat', label:'Asiento(s)', type:'text' },
+    { k:'baggage', label:'Equipaje', type:'textarea', placeholder:'Ej.: 1 maleta facturada 23 kg + mochila' },
+    { k:'notes', label:'Notas', type:'textarea' }
+  ]},
+  stay: { title: 'Alojamiento', deletable:true, fields: [
+    { k:'name', label:'Nombre', type:'text', required:true },
+    { k:'address', label:'Dirección / ubicación', type:'text' },
+    { k:'inDate', label:'Check-in · día', type:'date', half:true },
+    { k:'inTime', label:'Check-in · hora', type:'time', half:true },
+    { k:'outDate', label:'Check-out · día', type:'date', half:true },
+    { k:'outTime', label:'Check-out · hora', type:'time', half:true },
+    { k:'phone', label:'Teléfono', type:'tel', half:true },
+    { k:'email', label:'Email', type:'email', half:true },
+    { k:'notes', label:'Notas', type:'textarea' }
+  ]},
+  car: { title: 'Coche de alquiler', fields: [
+    { k:'company', label:'Empresa', type:'text' },
+    { k:'pickupPlace', label:'Recogida · lugar', type:'text' },
+    { k:'pickupDate', label:'Recogida · día', type:'date', half:true },
+    { k:'pickupTime', label:'Recogida · hora', type:'time', half:true },
+    { k:'returnPlace', label:'Entrega · lugar', type:'text' },
+    { k:'returnDate', label:'Entrega · día', type:'date', half:true },
+    { k:'returnTime', label:'Entrega · hora', type:'time', half:true },
+    { k:'phone', label:'Teléfono', type:'tel', half:true },
+    { k:'email', label:'Email', type:'email', half:true },
+    { k:'notes', label:'Notas', type:'textarea' }
+  ]},
+  stop: { title: 'Parada', deletable:true, fields: [
+    { k:'title', label:'Lugar', type:'text', required:true },
+    { k:'day', label:'Día', type:'select', options:dayOptions, half:true },
+    { k:'time', label:'Hora (opcional)', type:'time', half:true },
+    { k:'address', label:'Dirección / ubicación', type:'text', hint:'Si la dejas vacía, Maps buscará por el nombre.' },
+    { k:'notes', label:'Notas', type:'textarea' },
+    { k:'image', label:'Imagen (enlace)', type:'url', placeholder:'https://…', hint:'Pega el enlace de una imagen de internet. En Safari: abre la imagen y copia su dirección.' }
+  ]},
+  place: { title: 'Lugar', deletable:true, fields: [
+    { k:'name', label:'Nombre', type:'text', required:true },
+    { k:'tag', label:'Etiqueta', type:'tag', placeholder:'Ej.: Restaurante' },
+    { k:'address', label:'Dirección / ubicación', type:'text', hint:'Si la dejas vacía, Maps buscará por el nombre.' },
+    { k:'notes', label:'Resumen / notas', type:'textarea', placeholder:'Tipo de cocina, qué pedir, horario…' }
+  ]}
+};
+
+function fieldHTML(f, val) {
+  const id = 'f-' + f.k;
+  const v = esc(val == null ? '' : val);
+  const ph = f.placeholder ? ' placeholder="' + esc(f.placeholder) + '"' : '';
+  let input;
+  if (f.type === 'textarea') {
+    input = '<textarea id="' + id + '" name="' + f.k + '" rows="3"' + ph + '>' + v + '</textarea>';
+  } else if (f.type === 'select') {
+    input = '<select id="' + id + '" name="' + f.k + '">' + f.options(val || '').map(o =>
+      '<option value="' + esc(o.v) + '"' + (o.v === (val || '') ? ' selected' : '') + '>' + esc(o.l) + '</option>').join('') + '</select>';
+  } else {
+    let type = f.type, extra = '';
+    if (f.type === 'tag') { type = 'text'; extra = ' list="tagList" autocomplete="off"'; }
+    if (f.type === 'url') { type = 'url'; extra = ' inputmode="url" autocapitalize="off" autocorrect="off"'; }
+    if (f.type === 'email') { extra = ' inputmode="email" autocapitalize="off"'; }
+    input = '<input type="' + type + '" id="' + id + '" name="' + f.k + '" value="' + v + '"' + ph + extra + '>';
+  }
+  return '<label class="field' + (f.half ? ' field--half' : '') + '"><span>' + esc(f.label) + (f.required ? ' *' : '') + '</span>' +
+    input + (f.hint ? '<small>' + esc(f.hint) + '</small>' : '') + '</label>';
+}
+
+/* =====================================================================
+   HOJA DE EDICIÓN
+   ===================================================================== */
+let sheetCtx = null;
+
+function sheetTitleFor(type, id, isNew) {
+  if (type === 'flight') return id === 'flight-out' ? 'Vuelo de ida' : 'Vuelo de vuelta';
+  const base = SCHEMAS[type].title;
+  return isNew ? 'Nuevo: ' + base.toLowerCase() : base;
+}
+
+function openSheet(type, id, preset) {
+  const schema = SCHEMAS[type]; if (!schema) return;
+  const existing = id ? get(id) : null;
+  if (id && (!existing || existing.deleted)) return;
+  const data = existing ? Object.assign({}, existing) : Object.assign({}, preset || {});
+  sheetCtx = { type: type, id: existing ? id : null, data: data };
+
+  const sheet = $('#sheet'), form = $('#sheetForm'), title = $('#sheetTitle');
+  if (!sheet || !form || !title) return;
+  title.textContent = sheetTitleFor(type, id, !existing);
+  if (type === 'place') refreshTagList();
+
+  let actions = '<button type="submit" class="btn btn--primary">Guardar</button>' +
+                '<button type="button" class="btn btn--ghost" data-close>Cancelar</button>';
+  if (existing && schema.deletable) actions += '<button type="button" class="btn btn--danger" data-sheet="delete">Eliminar</button>';
+  if (existing && !schema.deletable && type !== 'trip' && hasData(existing)) actions += '<button type="button" class="btn btn--danger" data-sheet="clear">Vaciar datos</button>';
+
+  form.innerHTML = '<div class="form-grid">' + schema.fields.map(f => fieldHTML(f, data[f.k])).join('') + '</div>' +
+    (type === 'stop' ? '<div class="img-preview" id="imgPreview" hidden><img alt="" referrerpolicy="no-referrer"></div>' : '') +
+    '<p class="form-error" id="sheetError" hidden></p>' +
+    '<div class="sheet-actions">' + actions + '</div>';
+
+  if (type === 'stop') {
+    const inp = form.querySelector('[name="image"]');
+    if (inp) { inp.addEventListener('input', updateImgPreview); updateImgPreview(); }
+  }
+  sheet.hidden = false;
+  document.body.classList.add('noscroll');
+  const panel = sheet.querySelector('.sheet-panel'); if (panel) panel.scrollTop = 0;
+}
+
+function updateImgPreview() {
+  const box = $('#imgPreview'), inp = $('#sheetForm [name="image"]');
+  if (!box || !inp) return;
+  const url = safeUrl(inp.value);
+  const img = box.querySelector('img');
+  if (!url || !img) { box.hidden = true; return; }
+  img.onerror = () => { box.hidden = true; };
+  img.onload = () => { box.hidden = false; };
+  img.src = url;
+}
+
+function closeSheet() {
+  const sheet = $('#sheet'); if (sheet) sheet.hidden = true;
+  document.body.classList.remove('noscroll');
+  sheetCtx = null;
+}
+
+function showSheetError(msg) {
+  const el = $('#sheetError'); if (!el) return;
+  el.textContent = msg; el.hidden = !msg;
+}
+
+function nextOrder(day) {
+  return live('stop').filter(s => (s.day || '') === (day || '')).reduce((m, s) => Math.max(m, Number(s.order) || 0), -1) + 1;
+}
+
+function submitSheet(ev) {
+  ev.preventDefault();
+  if (!sheetCtx) return;
+  const ctx = sheetCtx, schema = SCHEMAS[ctx.type], form = $('#sheetForm');
+  const fd = new FormData(form);
+  const out = Object.assign({}, ctx.data);
+  for (const f of schema.fields) out[f.k] = String(fd.get(f.k) || '').trim();
+
+  const missing = schema.fields.find(f => f.required && !out[f.k]);
+  if (missing) { showSheetError('Rellena el campo «' + missing.label + '».'); return; }
+  if (ctx.type === 'stop' && out.image && !safeUrl(out.image)) { showSheetError('El enlace de la imagen debe empezar por https://'); return; }
+  if (ctx.type === 'trip' && out.start && out.end && out.end < out.start) { showSheetError('El último día no puede ser anterior al primero.'); return; }
+
+  if (!ctx.id) {
+    out.id = uid(ctx.type); out.t = ctx.type;
+    if (ctx.type === 'stop') out.order = nextOrder(out.day);
+  } else if (ctx.type === 'stop') {
+    const prev = get(ctx.id);
+    if (prev && (prev.day || '') !== (out.day || '')) out.order = nextOrder(out.day);
+  }
+  upsert(out);
+  closeSheet();
+  commit();
+}
+
+function sheetAction(kind) {
+  if (!sheetCtx || !sheetCtx.id) return;
+  const ctx = sheetCtx;
+  if (kind === 'delete') {
+    if (!confirm('¿Eliminar este elemento? Se borrará también en el otro dispositivo.')) return;
+    removeEnt(ctx.id);
+  } else if (kind === 'clear') {
+    if (!confirm('¿Vaciar todos los datos de esta sección?')) return;
+    upsert(Object.assign({}, FIXED[ctx.id]));
+  }
+  closeSheet();
+  commit();
+}
+
+function refreshTagList() {
+  const dl = $('#tagList'); if (!dl) return;
+  const tags = new Set(DEFAULT_TAGS);
+  live('place').forEach(p => { if (p.tag) tags.add(p.tag); });
+  dl.innerHTML = Array.from(tags).sort((a, b) => a.localeCompare(b, 'es')).map(t => '<option value="' + esc(t) + '">').join('');
+}
+
+/* =====================================================================
+   EVENTOS DE LOGÍSTICA Y VALIDACIÓN
+   ===================================================================== */
+function logisticEvents() {
+  const ev = [];
+  const push = (date, time, icon, title, sub) => { if (parseDate(date)) ev.push({ date: date, time: time || '', icon: icon, title: title, sub: sub || '' }); };
+
+  const p = get('parking');
+  push(p.inDate, p.inTime, 'parking', 'Dejar el coche en el parking', p.name);
+  push(p.outDate, p.outTime, 'parking', 'Recoger el coche del parking', p.name);
+
+  [['flight-out', 'Vuelo de ida'], ['flight-back', 'Vuelo de vuelta']].forEach(([id, lbl]) => {
+    const f = get(id);
+    const route = [f.from, f.to].filter(Boolean).join(' → ');
+    const extra = [f.boarding && 'embarque ' + f.boarding, f.gateClose && 'cierre ' + f.gateClose].filter(Boolean).join(' · ');
+    push(f.date, f.dep, 'plane', lbl + (f.number ? ' · ' + f.number : ''), [route, extra].filter(Boolean).join(' · '));
+  });
+
+  live('stay').forEach(s => {
+    push(s.inDate, s.inTime, 'bed', 'Check-in · ' + s.name, s.address);
+    push(s.outDate, s.outTime, 'bed', 'Check-out · ' + s.name, s.address);
+  });
+
+  const c = get('car');
+  push(c.pickupDate, c.pickupTime, 'key', 'Recoger coche de alquiler', [c.company, c.pickupPlace].filter(Boolean).join(' · '));
+  push(c.returnDate, c.returnTime, 'key', 'Entregar coche de alquiler', [c.company, c.returnPlace].filter(Boolean).join(' · '));
+
+  return ev.sort((a, b) => (a.date + (a.time || '99:99')).localeCompare(b.date + (b.time || '99:99')));
+}
+
+function evHTML(e, showDate) {
+  const when = showDate ? whenText(e.date, e.time) : (e.time || 'Sin hora');
+  return '<button class="ev" type="button" data-go="logistica">' +
+    '<span class="ev-ico">' + ICON(e.icon) + '</span>' +
+    '<span class="ev-txt"><span class="ev-when">' + esc(when) + '</span><b>' + esc(e.title) + '</b>' +
+    (e.sub ? '<span>' + esc(e.sub) + '</span>' : '') + '</span></button>';
+}
+
+function validate() {
+  const w = [];
+  const t = get('trip');
+  const days = tripDays();
+  const first = days[0], last = days[days.length - 1];
+
+  if (t.start && t.end && t.end < t.start) w.push('El último día del viaje es anterior al primero.');
+  if (t.start && t.end && t.end >= t.start) {
+    const span = Math.round((parseDate(t.end) - parseDate(t.start)) / 864e5) + 1;
+    if (span > MAX_DAYS) w.push('El viaje dura más de ' + MAX_DAYS + ' días; el itinerario solo muestra los ' + MAX_DAYS + ' primeros.');
+  }
+
+  const fo = get('flight-out'), fb = get('flight-back');
+  const dOut = dt(fo.date, fo.dep), dBack = dt(fb.date, fb.dep);
+  if (dOut && dBack && dBack < dOut) w.push('El vuelo de vuelta sale antes que el de ida.');
+  [[fo, 'Vuelo de ida'], [fb, 'Vuelo de vuelta']].forEach(([f, lbl]) => {
+    if (f.dep && f.boarding && f.boarding > f.dep) w.push(lbl + ': el embarque (' + f.boarding + ') es posterior a la salida (' + f.dep + ').');
+    if (f.dep && f.gateClose && f.gateClose > f.dep) w.push(lbl + ': el cierre de puertas (' + f.gateClose + ') es posterior a la salida (' + f.dep + ').');
+    if (f.boarding && f.gateClose && f.gateClose < f.boarding) w.push(lbl + ': el cierre de puertas es anterior al embarque.');
+    if (first && f.date && (f.date < first || f.date > last)) w.push(lbl + ': la fecha (' + fDate(f.date) + ') queda fuera de las fechas del viaje.');
+  });
+
+  const p = get('parking');
+  const pin = dt(p.inDate, p.inTime), pout = dt(p.outDate, p.outTime);
+  if (pin && pout && pout < pin) w.push('Parking: la salida es anterior a la entrada.');
+  if (pin && dOut && pin > dOut) w.push('Parking: la entrada es posterior a la salida del vuelo de ida.');
+  const backArr = dt(fb.date, fb.arr || fb.dep);
+  if (pout && backArr && pout < backArr) w.push('Parking: la salida es anterior a la llegada del vuelo de vuelta.');
+
+  const stays = live('stay');
+  stays.forEach(s => {
+    if (s.inDate && s.outDate && s.outDate < s.inDate) w.push(s.name + ': el check-out es anterior al check-in.');
+    if (first && s.inDate && (s.inDate < first || s.inDate > last)) w.push(s.name + ': el check-in queda fuera de las fechas del viaje.');
+  });
+  for (let i = 0; i < stays.length; i++) for (let j = i + 1; j < stays.length; j++) {
+    const a = stays[i], b = stays[j];
+    if (a.inDate && a.outDate && b.inDate && b.outDate && a.inDate < b.outDate && b.inDate < a.outDate)
+      w.push('Las fechas de «' + a.name + '» y «' + b.name + '» se solapan.');
+  }
+
+  const c = get('car');
+  const cp = dt(c.pickupDate, c.pickupTime), cr = dt(c.returnDate, c.returnTime);
+  if (cp && cr && cr < cp) w.push('Coche de alquiler: la entrega es anterior a la recogida.');
+  const outArr = dt(fo.date, fo.arr);
+  if (cp && outArr && cp < outArr && c.pickupDate === fo.date) w.push('Coche de alquiler: la recogida es anterior a la llegada del vuelo de ida.');
+  if (cr && dBack && cr > dBack) w.push('Coche de alquiler: la entrega es posterior a la salida del vuelo de vuelta.');
+
+  const orphans = live('stop').filter(s => !days.includes(s.day)).length;
+  if (orphans) w.push(plural(orphans, 'parada no tiene', 'paradas no tienen') + ' un día dentro del viaje (aparecen en «Sin día asignado»).');
+  return w;
+}
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+const TABS = [
+  { id:'hoy',        label:'Hoy',        icon:'home' },
+  { id:'itinerario', label:'Itinerario', icon:'route' },
+  { id:'lugares',    label:'Lugares',    icon:'pin' },
+  { id:'logistica',  label:'Logística',  icon:'bag' },
+  { id:'ajustes',    label:'Ajustes',    icon:'sliders' }
+];
+
+let dragging = false, pendingRender = false, justDragged = 0;
+let lastRenderDay = todayISO();
+
+function renderAll() {
+  if (dragging) { pendingRender = true; return; }
+  lastRenderDay = todayISO();
+  renderTabbar();
+  renderHero();
+  renderToday();
+  renderItinerary();
+  renderPlaces();
+  renderLogistics();
+  renderSettings();
+  TABS.forEach(t => {
+    const el = $('#tab-' + t.id);
+    if (el) el.classList.toggle('active', t.id === ui.tab);
+  });
+}
+
+function renderTabbar() {
+  const el = $('#tabbar'); if (!el) return;
+  el.innerHTML = TABS.map(t =>
+    '<button type="button" data-tab="' + t.id + '" class="' + (t.id === ui.tab ? 'active' : '') + '"' +
+    (t.id === ui.tab ? ' aria-current="page"' : '') + '><span class="ico">' + ICON(t.icon) + '</span>' + esc(t.label) + '</button>').join('');
+}
+
+function setTab(id) {
+  if (!TABS.some(t => t.id === id)) return;
+  ui.tab = id; saveUI(); renderAll();
+  window.scrollTo(0, 0);
+}
+
+function renderHero() {
+  const el = $('#hero'); if (!el) return;
+  const t = get('trip'); const days = tripDays();
+  const sub = [t.destination, rangeLabel(t.start, t.end)].filter(Boolean).join(' · ');
+  el.className = 'hero' + (ui.tab === 'hoy' ? '' : ' hero--compact');
+  el.innerHTML = '<div class="eyebrow">Tu viaje</div><h1>' + esc(t.name || APP.defaultName) + '</h1>' +
+    (sub ? '<p class="sub">' + esc(sub) + '</p>' : '') +
+    (days.length ? '<span class="pill">' + plural(days.length, 'día', 'días') + '</span>' : '');
+  document.title = t.name || APP.defaultName;
+}
+
+function stopHTML(s) {
+  const img = safeUrl(s.image);
+  return '<li class="stop" data-id="' + esc(s.id) + '">' +
+    '<div class="stop-time">' + esc(s.time || '') + '</div>' +
+    '<div class="stop-rail"><span class="stop-dot"></span></div>' +
+    '<div class="stop-card" data-edit="stop" data-id="' + esc(s.id) + '">' +
+      (img ? '<button class="stop-img" type="button" data-lightbox="' + esc(img) + '" aria-label="Ver imagen"><img src="' + esc(img) + '" alt="" loading="lazy" referrerpolicy="no-referrer" draggable="false" onerror="this.parentNode.classList.add(\'is-broken\')"></button>' : '') +
+      '<div class="stop-body"><b>' + esc(s.title) + '</b>' +
+        (s.notes ? '<p>' + nl2br(s.notes) + '</p>' : '') +
+        mapsLink(s.address, s.title) +
+      '</div>' +
+    '</div></li>';
+}
+
+function sortStops(list) {
+  return list.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0) || String(a.id).localeCompare(String(b.id)));
+}
+
+/* ---------- Hoy ---------- */
+function renderToday() {
+  const el = $('#tab-hoy'); if (!el) return;
+  const days = tripDays(); const today = todayISO(); const evs = logisticEvents();
+  let h = '';
+
+  if (!days.length) {
+    h += '<h2>¡Empecemos!</h2>' +
+      '<div class="card"><h3>Configura las fechas del viaje</h3><p class="muted">Con el primer y el último día se generan automáticamente los días del itinerario y la vista «Hoy».</p>' +
+      '<div class="links"><button class="btn btn--primary btn--small" type="button" data-edit="trip" data-id="trip">Poner fechas</button></div></div>';
+  } else if (today < days[0]) {
+    const fo = get('flight-out');
+    const fDt = dt(fo.date, fo.dep);
+    let target, title, sub;
+    if (fDt && fDt > new Date()) {
+      target = fDt; title = 'Vuelo de ida' + (fo.number ? ' · ' + fo.number : '');
+      sub = [[fo.from, fo.to].filter(Boolean).join(' → '), whenText(fo.date, fo.dep)].filter(Boolean).join(' · ');
+    } else {
+      target = parseDate(days[0]); title = 'Empieza el viaje'; sub = cap(fDate(days[0], fmtLong));
+    }
+    h += '<div class="card card--purple"><span class="badge">Cuenta atrás</span><h3>' + esc(title) + '</h3>' +
+      (sub ? '<p class="muted">' + esc(sub) + '</p>' : '') +
+      '<div class="count" data-countdown="' + target.getTime() + '">' +
+        '<div><b data-u="d">–</b><span>días</span></div><div><b data-u="h">–</b><span>horas</span></div><div><b data-u="m">–</b><span>min</span></div>' +
+      '</div></div>';
+    const upcoming = evs.filter(e => e.date >= today).slice(0, 5);
+    if (upcoming.length) h += '<div class="kicker">Próximos pasos</div>' + upcoming.map(e => evHTML(e, true)).join('');
+    const firstStops = sortStops(live('stop').filter(s => s.day === days[0]));
+    h += '<div class="kicker">Día 1 · ' + esc(cap(fDate(days[0], fmtLong))) + '</div>';
+    h += firstStops.length ? '<ul class="stops">' + firstStops.map(stopHTML).join('') + '</ul>'
+                           : emptyCard('Añadir la primera parada', 'stop', '', days[0]);
+  } else if (today > days[days.length - 1]) {
+    h += '<div class="card card--purple"><span class="badge">Fin del viaje</span><h3>¡Esperamos que haya sido un gran viaje!</h3>' +
+      '<p class="muted">' + esc(plural(days.length, 'día', 'días')) + ' · ' + esc(plural(live('stop').length, 'parada', 'paradas')) + ' · ' + esc(plural(live('place').length, 'lugar guardado', 'lugares guardados')) + '</p></div>';
+  } else {
+    const idx = days.indexOf(today);
+    h += '<div class="kicker" style="margin-top:6px">Día ' + (idx + 1) + ' de ' + days.length + '</div>' +
+         '<h2 style="margin-top:0">' + esc(cap(fDate(today, fmtLong))) + '</h2>';
+    const todayEv = evs.filter(e => e.date === today);
+    if (todayEv.length) h += todayEv.map(e => evHTML(e, false)).join('');
+    const stops = sortStops(live('stop').filter(s => s.day === today));
+    h += '<div class="head-row"><h2 style="font-size:20px">Plan de hoy</h2>' +
+         '<button class="btn btn--small" type="button" data-edit="stop" data-id="" data-day="' + today + '">' + ICON('plus') + ' Parada</button></div>';
+    h += stops.length ? '<ul class="stops">' + stops.map(stopHTML).join('') + '</ul>'
+                      : '<div class="card"><p class="muted">Nada planeado para hoy. ¡Día libre!</p></div>';
+    const next = evs.find(e => e.date > today);
+    if (next) h += '<div class="kicker">Lo próximo</div>' + evHTML(next, true);
+    if (idx + 1 < days.length) {
+      const tomorrow = days[idx + 1];
+      const n = live('stop').filter(s => s.day === tomorrow).length;
+      h += '<div class="kicker">Mañana</div><button class="ev" type="button" data-go="itinerario"><span class="ev-ico">' + ICON('route') + '</span><span class="ev-txt"><b>' +
+        esc(cap(fDate(tomorrow, fmtLong))) + '</b><span>' + esc(n ? plural(n, 'parada planeada', 'paradas planeadas') : 'Sin paradas todavía') + '</span></span></button>';
+    }
+  }
+  el.innerHTML = h;
+  updateCountdown();
+}
+
+function updateCountdown() {
+  document.querySelectorAll('[data-countdown]').forEach(box => {
+    const diff = Math.max(0, Number(box.getAttribute('data-countdown')) - Date.now());
+    const d = Math.floor(diff / 864e5), hh = Math.floor(diff / 36e5) % 24, mm = Math.floor(diff / 6e4) % 60;
+    const set = (u, v) => { const b = box.querySelector('[data-u="' + u + '"]'); if (b) b.textContent = v; };
+    set('d', d); set('h', hh); set('m', mm);
+  });
+}
+
+/* ---------- Itinerario ---------- */
+let sortables = [];
+function destroySortables() { sortables.forEach(s => { try { s.destroy(); } catch (e) {} }); sortables = []; }
+
+function renderItinerary() {
+  const el = $('#tab-itinerario'); if (!el) return;
+  destroySortables();
+  const days = tripDays(); const today = todayISO();
+  const byDay = new Map(days.map(d => [d, []])); const orphans = [];
+  live('stop').forEach(s => { (byDay.get(s.day) || orphans).push(s); });
+
+  let h = '<h2>Itinerario</h2>';
+  if (typeof Sortable !== 'undefined') h += '<p class="hint">Mantén pulsada una parada y arrástrala para cambiar el orden o el día.</p>';
+  else h += '<p class="hint">Toca una parada para editarla o cambiarla de día.</p>';
+
+  if (!days.length) {
+    h += '<div class="card"><h3>Sin fechas</h3><p class="muted">Pon el primer y el último día del viaje para generar el itinerario.</p>' +
+      '<div class="links"><button class="btn btn--primary btn--small" type="button" data-edit="trip" data-id="trip">Poner fechas</button></div></div>';
+  }
+  days.forEach((d, i) => {
+    const list = sortStops(byDay.get(d));
+    h += '<div class="day' + (d === today ? ' day--today' : '') + '"><div class="day-head"><div>' +
+      '<div class="kicker">Día ' + (i + 1) + (d === today ? ' · Hoy' : '') + '</div><h3>' + esc(cap(fDate(d, fmtLong))) + '</h3></div>' +
+      '<button class="btn btn--small" type="button" data-edit="stop" data-id="" data-day="' + d + '">' + ICON('plus') + ' Parada</button></div>' +
+      '<ul class="stops" data-day="' + d + '">' + list.map(stopHTML).join('') + '</ul></div>';
+  });
+  if (orphans.length || !days.length) {
+    h += '<div class="day"><div class="day-head"><div><div class="kicker">Sin día</div><h3>Sin día asignado</h3></div>' +
+      '<button class="btn btn--small" type="button" data-edit="stop" data-id="" data-day="">' + ICON('plus') + ' Parada</button></div>' +
+      '<ul class="stops" data-day="">' + sortStops(orphans).map(stopHTML).join('') + '</ul></div>';
+  }
+  el.innerHTML = h;
+  initSortables();
+}
+
+function initSortables() {
+  if (typeof Sortable === 'undefined') return;
+  document.querySelectorAll('#tab-itinerario .stops').forEach(ul => {
+    sortables.push(Sortable.create(ul, {
+      group: 'stops',
+      draggable: '.stop',
+      filter: 'a',
+      preventOnFilter: false,
+      delay: 280,
+      delayOnTouchOnly: true,
+      touchStartThreshold: 6,
+      forceFallback: true,
+      fallbackTolerance: 4,
+      animation: 180,
+      scroll: true,
+      bubbleScroll: true,
+      scrollSensitivity: 90,
+      scrollSpeed: 14,
+      ghostClass: 'stop--ghost',
+      chosenClass: 'stop--chosen',
+      dragClass: 'stop--drag',
+      onStart: function () { dragging = true; document.body.classList.add('is-dragging'); },
+      onEnd: function () {
+        dragging = false; justDragged = Date.now();
+        document.body.classList.remove('is-dragging');
+        applyDomOrder();
+      }
+    }));
+  });
+}
+
+function applyDomOrder() {
+  let changed = false;
+  document.querySelectorAll('#tab-itinerario .stops').forEach(ul => {
+    const day = ul.getAttribute('data-day') || '';
+    Array.from(ul.querySelectorAll('.stop')).forEach((li, i) => {
+      const s = get(li.getAttribute('data-id'));
+      if (!s || s.deleted) return;
+      if ((s.day || '') !== day || Number(s.order) !== i) { upsert(Object.assign({}, s, { day: day, order: i })); changed = true; }
+    });
+  });
+  const needRender = pendingRender; pendingRender = false;
+  if (changed) commit(); else if (needRender) renderAll();
+}
+
+/* ---------- Lugares ---------- */
+function placeHTML(p) {
+  return '<div class="card place" data-edit="place" data-id="' + esc(p.id) + '">' +
+    '<b>' + esc(p.name) + '</b>' + (p.tag ? '<span class="tag">' + esc(p.tag) + '</span>' : '') +
+    (p.notes ? '<p>' + nl2br(p.notes) + '</p>' : '') + mapsLink(p.address, p.name) + '</div>';
+}
+
+function renderPlaces() {
+  const el = $('#tab-lugares'); if (!el) return;
+  const NOTAG = 'Sin etiqueta';
+  const places = live('place').sort((a, b) => String(a.name).localeCompare(String(b.name), 'es'));
+  const tagOf = p => (p.tag || '').trim() || NOTAG;
+  const tags = Array.from(new Set(places.map(tagOf))).sort((a, b) => a === NOTAG ? 1 : b === NOTAG ? -1 : a.localeCompare(b, 'es'));
+  if (ui.placeTag && !tags.includes(ui.placeTag)) ui.placeTag = '';
+
+  let h = '<div class="head-row"><h2>Lugares</h2><button class="btn btn--primary btn--small" type="button" data-edit="place" data-id="">' + ICON('plus') + ' Añadir</button></div>';
+  if (!places.length) {
+    h += '<p class="hint">Restaurantes, bares, playas, miradores… todo lo que no quieras olvidar.</p>' + emptyCard('Añadir el primer lugar', 'place', '');
+    el.innerHTML = h; return;
+  }
+  if (tags.length > 1) {
+    h += '<div class="chips"><button class="chip' + (!ui.placeTag ? ' active' : '') + '" type="button" data-placetag="">Todos · ' + places.length + '</button>' +
+      tags.map(t => '<button class="chip' + (ui.placeTag === t ? ' active' : '') + '" type="button" data-placetag="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div>';
+  }
+  h += '<div class="switch-row"><span>Agrupar por etiqueta</span><button class="switch" type="button" role="switch" aria-checked="' + (ui.placeGroup ? 'true' : 'false') + '" data-action="toggleGroup" aria-label="Agrupar por etiqueta"></button></div>';
+  const filtered = places.filter(p => !ui.placeTag || tagOf(p) === ui.placeTag);
+  if (ui.placeGroup) {
+    tags.filter(t => !ui.placeTag || t === ui.placeTag).forEach(t => {
+      const group = filtered.filter(p => tagOf(p) === t);
+      if (group.length) h += '<div class="kicker">' + esc(t) + ' · ' + group.length + '</div>' + group.map(placeHTML).join('');
+    });
+  } else {
+    h += filtered.map(placeHTML).join('');
+  }
+  el.innerHTML = h;
+}
+
+/* ---------- Logística ---------- */
+function parkingHTML() {
+  const p = get('parking');
+  if (!hasData(p)) return emptyCard('Añadir datos del parking', 'parking', 'parking');
+  const links = [mapsLink(p.address, p.name), telLink(p.phone)].filter(Boolean).join('');
+  return '<div class="card"><div class="card-head"><div><h3>' + esc(p.name || 'Parking') + '</h3>' +
+    (p.address ? '<p class="muted">' + esc(p.address) + '</p>' : '') + '</div>' + editBtn('parking', 'parking') + '</div>' +
+    infoHTML([['Entrada', whenText(p.inDate, p.inTime)], ['Salida', whenText(p.outDate, p.outTime)], ['Horario', p.hours], ['Teléfono', p.phone], ['Notas', p.notes]]) +
+    (links ? '<div class="links">' + links + '</div>' : '') + '</div>';
+}
+
+function flightHTML(id) {
+  const f = get(id); const lbl = id === 'flight-out' ? 'Ida' : 'Vuelta';
+  if (!hasData(f)) return emptyCard('Añadir vuelo de ' + lbl.toLowerCase(), 'flight', id);
+  const num = String(f.number || '').replace(/\s+/g, '').toLowerCase();
+  const track = num ? '<a href="https://www.flightradar24.com/data/flights/' + encodeURIComponent(num) + '" target="_blank" rel="noopener">Seguir vuelo →</a>' : '';
+  return '<div class="card card--purple"><div class="card-head"><div><span class="badge">' + lbl + '</span>' +
+    '<h3>' + esc([f.airline, f.number].filter(Boolean).join(' · ') || 'Vuelo') + '</h3>' +
+    '<p class="muted">' + esc(cap(fDate(f.date, fmtLong)) || 'Sin fecha') + '</p></div>' + editBtn('flight', id) + '</div>' +
+    '<div class="fl-route"><div><div class="t">' + esc(f.dep || '--:--') + '</div><div class="c">' + esc(f.from || 'Origen') + '</div></div>' +
+    '<div class="fl-line">' + ICON('plane') + '</div>' +
+    '<div class="end"><div class="t">' + esc(f.arr || '--:--') + '</div><div class="c">' + esc(f.to || 'Destino') + '</div></div></div>' +
+    infoHTML([['Terminal', f.terminal], ['Embarque', f.boarding], ['Cierre de puertas', f.gateClose], ['Asiento', f.seat], ['Equipaje', f.baggage], ['Notas', f.notes]]) +
+    (track ? '<div class="links">' + track + '</div>' : '') + '</div>';
+}
+
+function stayHTML(s) {
+  const links = [mapsLink(s.address, s.name), telLink(s.phone), mailLink(s.email)].filter(Boolean).join('');
+  return '<div class="card"><div class="card-head"><div><h3>' + esc(s.name) + '</h3>' +
+    (s.address ? '<p class="muted">' + esc(s.address) + '</p>' : '') + '</div>' + editBtn('stay', s.id) + '</div>' +
+    infoHTML([['Check-in', whenText(s.inDate, s.inTime)], ['Check-out', whenText(s.outDate, s.outTime)], ['Teléfono', s.phone], ['Email', s.email], ['Notas', s.notes]]) +
+    (links ? '<div class="links">' + links + '</div>' : '') + '</div>';
+}
+
+function carHTML() {
+  const c = get('car');
+  if (!hasData(c)) return emptyCard('Añadir coche de alquiler', 'car', 'car');
+  const links = [c.pickupPlace ? '<a href="' + esc(mapsUrl(c.pickupPlace)) + '" target="_blank" rel="noopener">Recogida en Maps</a>' : '',
+                 c.returnPlace && c.returnPlace !== c.pickupPlace ? '<a href="' + esc(mapsUrl(c.returnPlace)) + '" target="_blank" rel="noopener">Entrega en Maps</a>' : '',
+                 telLink(c.phone), mailLink(c.email)].filter(Boolean).join('');
+  return '<div class="card"><div class="card-head"><div><h3>' + esc(c.company || 'Coche de alquiler') + '</h3></div>' + editBtn('car', 'car') + '</div>' +
+    infoHTML([['Recogida', [whenText(c.pickupDate, c.pickupTime), c.pickupPlace].filter(Boolean).join('\n')],
+              ['Entrega', [whenText(c.returnDate, c.returnTime), c.returnPlace].filter(Boolean).join('\n')],
+              ['Teléfono', c.phone], ['Email', c.email], ['Notas', c.notes]]) +
+    (links ? '<div class="links">' + links + '</div>' : '') + '</div>';
+}
+
+function renderLogistics() {
+  const el = $('#tab-logistica'); if (!el) return;
+  const warnings = validate();
+  const stays = live('stay').sort((a, b) => (a.inDate || '9999').localeCompare(b.inDate || '9999'));
+  let h = '<h2>Logística</h2>';
+  if (warnings.length) h += '<div class="card card--warn"><h3>Revisa estos datos</h3><ul>' + warnings.map(w => '<li>' + esc(w) + '</li>').join('') + '</ul></div>';
+  h += '<div class="kicker">Parking del aeropuerto</div>' + parkingHTML();
+  h += '<div class="kicker">Vuelos</div>' + flightHTML('flight-out') + flightHTML('flight-back');
+  h += '<div class="head-row"><div class="kicker" style="margin:0">Alojamientos</div>' +
+       (stays.length ? '<button class="btn btn--small" type="button" data-edit="stay" data-id="">' + ICON('plus') + ' Añadir</button>' : '') + '</div>';
+  h += stays.length ? stays.map(stayHTML).join('') : emptyCard('Añadir alojamiento', 'stay', '');
+  h += '<div class="kicker">Coche de alquiler</div>' + carHTML();
+  el.innerHTML = h;
+}
+
+/* ---------- Ajustes ---------- */
+function renderSettings() {
+  const el = $('#tab-ajustes'); if (!el) return;
+  const t = get('trip'); const days = tripDays();
+  el.innerHTML = '<h2>Ajustes</h2>' +
+    '<div class="card"><div class="card-head"><div><h3>' + esc(t.name || APP.defaultName) + '</h3>' +
+      (t.destination ? '<p class="muted">' + esc(t.destination) + '</p>' : '') + '</div>' + editBtn('trip', 'trip', 'Editar datos del viaje') + '</div>' +
+      infoHTML([['Primer día', cap(fDate(t.start, fmtLong))], ['Último día', cap(fDate(t.end, fmtLong))], ['Duración', days.length ? plural(days.length, 'día', 'días') : '']]) +
+      (!days.length ? '<p class="muted" style="margin-top:10px">Añade las fechas para generar los días del itinerario.</p>' : '') + '</div>' +
+    '<div class="kicker">Cuenta y sincronización</div>' +
+    '<div class="card"><p style="font-weight:700">' + (currentEmail ? 'Sesión iniciada como <b>' + esc(currentEmail) + '</b>' : 'Sin sesión') + '</p>' +
+      '<p class="muted" id="syncLine">' + esc(syncLine) + '</p>' +
+      '<div class="links"><button class="btn btn--ghost btn--small" type="button" data-action="logout">Cerrar sesión</button></div></div>' +
+    '<div class="kicker">Instalar en el iPhone</div>' +
+    '<div class="card"><p class="muted">Abre la web en Safari → botón Compartir → «Añadir a pantalla de inicio». Después abre la app desde el icono e inicia sesión dentro de ella.</p></div>' +
+    '<p class="version">Tenerife 26 · versión ' + APP.version + '</p>';
+}
+
+/* =====================================================================
+   SINCRONIZACIÓN (Firestore, un documento con un campo por elemento)
+   - Cada elemento se guarda como JSON en e.<id>; solo se suben los que cambian
+     (set + merge), así dos personas editando cosas distintas no se pisan.
+   - Fusión por elemento: gana la versión con la marca "u" más reciente.
+   - Anti-bucle (applyingRemote), anti-eco (remoteJSON) y debounce de 400 ms.
+   ===================================================================== */
+const sync = {
+  db: null, docRef: null, unsub: null,
+  applyingRemote: false,
+  remoteJSON: new Map(),
+  pushTimer: null,
+
+  schedulePush() {
+    if (!this.docRef) return;
+    clearTimeout(this.pushTimer);
+    this.pushTimer = setTimeout(() => this.pushNow(), 400);
+  },
+
+  pushNow() {
+    if (!this.docRef) return;
+    const patch = {}; let n = 0;
+    state.ent.forEach((e, id) => {
+      if (!e.u) return;                                   // valores por defecto sin tocar
+      const j = JSON.stringify(e);
+      if (this.remoteJSON.get(id) !== j) { patch[id] = j; n++; }
+    });
+    if (!n) return;
+    const prev = {};
+    Object.keys(patch).forEach(id => { prev[id] = this.remoteJSON.get(id); this.remoteJSON.set(id, patch[id]); });
+    if (!navigator.onLine) setStatus('Guardado en el dispositivo · se subirá con conexión', 'warn');
+    this.docRef.set({ e: patch, updatedAt: Date.now() }, { merge: true })
+      .then(() => { setStatus('Guardado ✓', 'ok'); setSyncLine('Sincronizado · ' + timeNow()); })
+      .catch(err => {
+        Object.keys(prev).forEach(id => { if (prev[id] === undefined) this.remoteJSON.delete(id); else this.remoteJSON.set(id, prev[id]); });
+        setStatus(err && err.code === 'permission-denied' ? 'Sin permiso para guardar' : 'Error al guardar', 'err');
+      });
+  },
+
+  onRemote(doc) {
+    const data = doc.exists ? (doc.data() || {}) : {};
+    const map = data.e || {};
+    let changed = false;
+    Object.keys(map).forEach(id => {
+      const j = map[id]; if (typeof j !== 'string') return;
+      this.remoteJSON.set(id, j);
+      let r; try { r = JSON.parse(j); } catch (e) { return; }
+      if (!r || r.id !== id) return;
+      const l = state.ent.get(id);
+      if (!l || (Number(r.u) || 0) > (Number(l.u) || 0)) { state.ent.set(id, r); changed = true; }
+    });
+    if (changed) {
+      this.applyingRemote = true;
+      try { ensureDefaults(); saveState(); renderAll(); } finally { this.applyingRemote = false; }
+      if (!doc.metadata.hasPendingWrites && !doc.metadata.fromCache) setStatus('Sincronizado ✓', 'ok');
+    }
+    if (!doc.metadata.fromCache) setSyncLine('Sincronizado · ' + timeNow());
+    this.schedulePush();                                  // sube lo local que sea más nuevo
+  },
+
+  start() {
+    if (this.docRef || !this.db) return;
+    this.docRef = this.db.collection(DOC_COLLECTION).doc(DOC_ID);
+    this.unsub = this.docRef.onSnapshot(
+      d => { try { this.onRemote(d); } catch (e) { console.error(e); } },
+      err => {
+        const denied = err && err.code === 'permission-denied';
+        setStatus(denied ? 'Esta cuenta no tiene permiso para el viaje' : 'Sin conexión con la nube', 'err');
+        setSyncLine(denied ? 'Sin permiso: revisa las reglas de Firestore.' : 'Sin conexión con la nube.');
+      });
+  },
+
+  stop() {
+    if (this.unsub) { try { this.unsub(); } catch (e) {} }
+    this.unsub = null; this.docRef = null; this.remoteJSON.clear();
+    clearTimeout(this.pushTimer);
+  }
+};
+
+function timeNow() { const d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+function setSyncLine(t) { syncLine = t; const el = $('#syncLine'); if (el) el.textContent = t; }
+
+let badgeTimer = null;
+function setStatus(msg, kind) {
+  const b = $('#syncBadge'); if (!b) return;
+  b.textContent = msg;
+  b.style.background = kind === 'ok' ? '#3E6259' : kind === 'err' ? '#8a3b3b' : kind === 'warn' ? '#7A5A1E' : '#222';
+  b.classList.add('show');
+  clearTimeout(badgeTimer);
+  badgeTimer = setTimeout(() => b.classList.remove('show'), kind === 'err' ? 4000 : 2500);
+}
+
+/* =====================================================================
+   ACCESO (Firebase Auth)
+   ===================================================================== */
+let auth = null;
+
+function showApp(email) {
+  currentEmail = email || currentEmail;
+  const login = $('#login'), app = $('#app');
+  if (login) login.hidden = true;
+  if (app) app.hidden = false;
+  renderAll();
+}
+function showLogin(msg) {
+  const login = $('#login'), app = $('#app');
+  if (app) app.hidden = true;
+  if (login) login.hidden = false;
+  setLoginMsg(msg || '');
+}
+function setLoginMsg(msg) { const el = $('#loginMsg'); if (el) { el.textContent = msg; el.hidden = !msg; } }
+
+function authErrorText(err) {
+  const c = (err && err.code) || '';
+  if (c === 'auth/invalid-credential' || c === 'auth/wrong-password' || c === 'auth/user-not-found' || c === 'auth/invalid-login-credentials') return 'Email o contraseña incorrectos.';
+  if (c === 'auth/invalid-email') return 'El email no es válido.';
+  if (c === 'auth/too-many-requests') return 'Demasiados intentos. Espera unos minutos.';
+  if (c === 'auth/network-request-failed') return 'Sin conexión. Inténtalo con internet.';
+  if (c === 'auth/user-disabled') return 'Esta cuenta está desactivada.';
+  return 'No se pudo iniciar sesión (' + (c || 'error') + ').';
+}
+
+function initFirebase() {
+  if (typeof firebase === 'undefined' || !firebase.initializeApp) return false;
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    auth = firebase.auth();
+    sync.db = firebase.firestore();
+    sync.db.enablePersistence({ synchronizeTabs: true }).catch(() => {});   // caché offline + cola de escrituras
+    return true;
+  } catch (e) { console.error(e); return false; }
+}
+
+function boot() {
+  loadUI();
+  loadState();
+  bindEvents();
+  let cachedEmail = '';
+  try { cachedEmail = localStorage.getItem(APP.authKey) || ''; } catch (e) {}
+
+  if (!initFirebase()) {
+    // Sin SDK (p. ej. sin conexión en el primer arranque): seguimos en local si ya había sesión.
+    if (cachedEmail) { showApp(cachedEmail); setSyncLine('Sin conexión con la nube · usando los datos del dispositivo.'); setStatus('Sin conexión · datos del dispositivo', 'warn'); }
+    else showLogin('No se puede conectar. El primer inicio de sesión necesita internet.');
+    return;
+  }
+
+  if (cachedEmail) showApp(cachedEmail);           // arranque rápido mientras Firebase confirma la sesión
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      try { localStorage.setItem(APP.authKey, user.email || ''); } catch (e) {}
+      showApp(user.email || '');
+      sync.start();
+    } else {
+      sync.stop();
+      try { localStorage.removeItem(APP.authKey); } catch (e) {}
+      currentEmail = '';
+      showLogin('');
+    }
+  });
+}
+
+function doLogin(ev) {
+  ev.preventDefault();
+  const email = ($('#loginEmail') || {}).value || '';
+  const pass = ($('#loginPass') || {}).value || '';
+  const btn = $('#loginBtn');
+  if (!auth) { setLoginMsg('No se puede conectar. Revisa tu conexión.'); return; }
+  if (!email.trim() || !pass) { setLoginMsg('Escribe tu email y tu contraseña.'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Entrando…'; }
+  setLoginMsg('');
+  auth.signInWithEmailAndPassword(email.trim(), pass)
+    .catch(err => setLoginMsg(authErrorText(err)))
+    .finally(() => { if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; } });
+}
+
+function doForgot() {
+  const email = (($('#loginEmail') || {}).value || '').trim();
+  if (!auth) { setLoginMsg('No se puede conectar. Revisa tu conexión.'); return; }
+  if (!email) { setLoginMsg('Escribe tu email arriba y vuelve a pulsar.'); return; }
+  auth.sendPasswordResetEmail(email)
+    .then(() => setLoginMsg('Te hemos enviado un email para cambiar la contraseña.'))
+    .catch(err => setLoginMsg(authErrorText(err)));
+}
+
+function doLogout() {
+  if (!confirm('¿Cerrar sesión en este dispositivo? Los datos siguen guardados en la nube.')) return;
+  try { localStorage.removeItem(APP.storeKey); localStorage.removeItem(APP.authKey); } catch (e) {}
+  applyStateSnapshot(null);
+  sync.stop();
+  if (auth) auth.signOut().catch(() => {});
+  else showLogin('');
+}
+
+/* =====================================================================
+   EVENTOS
+   ===================================================================== */
+function openLightbox(url) {
+  const lb = $('#lightbox'), img = $('#lightboxImg');
+  if (!lb || !img || !safeUrl(url)) return;
+  img.src = url; lb.hidden = false; document.body.classList.add('noscroll');
+}
+function closeLightbox() {
+  const lb = $('#lightbox'); if (lb) lb.hidden = true;
+  if (!sheetCtx) document.body.classList.remove('noscroll');
+}
+
+function bindEvents() {
+  document.addEventListener('click', ev => {
+    const t = ev.target;
+    if (!(t instanceof Element)) return;
+    if (Date.now() - justDragged < 450 && t.closest('#tab-itinerario')) { ev.preventDefault(); ev.stopPropagation(); return; }
+
+    if (t.closest('#lightbox')) { closeLightbox(); return; }
+    if (t.closest('[data-close]')) { closeSheet(); return; }
+    const sa = t.closest('[data-sheet]'); if (sa) { sheetAction(sa.getAttribute('data-sheet')); return; }
+    const lb = t.closest('[data-lightbox]'); if (lb) { openLightbox(lb.getAttribute('data-lightbox')); return; }
+    if (t.closest('a')) return;                                     // enlaces (Maps, teléfono…)
+    const tab = t.closest('[data-tab]'); if (tab) { setTab(tab.getAttribute('data-tab')); return; }
+    const go = t.closest('[data-go]'); if (go) { setTab(go.getAttribute('data-go')); return; }
+    const ed = t.closest('[data-edit]');
+    if (ed) {
+      const day = ed.getAttribute('data-day');
+      openSheet(ed.getAttribute('data-edit'), ed.getAttribute('data-id') || null, day != null ? { day: day } : {});
+      return;
+    }
+    const chip = t.closest('[data-placetag]');
+    if (chip) { ui.placeTag = chip.getAttribute('data-placetag') || ''; saveUI(); renderPlaces(); return; }
+    const act = t.closest('[data-action]');
+    if (act) {
+      const a = act.getAttribute('data-action');
+      if (a === 'toggleGroup') { ui.placeGroup = !ui.placeGroup; saveUI(); renderPlaces(); }
+      if (a === 'logout') doLogout();
+    }
+  });
+
+  document.addEventListener('keydown', ev => {
+    if (ev.key !== 'Escape') return;
+    const lb = $('#lightbox');
+    if (lb && !lb.hidden) closeLightbox(); else if (sheetCtx) closeSheet();
+  });
+
+  const sf = $('#sheetForm'); if (sf) sf.addEventListener('submit', submitSheet);
+  const lf = $('#loginForm'); if (lf) lf.addEventListener('submit', doLogin);
+  const fb = $('#forgotBtn'); if (fb) fb.addEventListener('click', doForgot);
+
+  window.addEventListener('offline', () => { setStatus('Sin conexión · los cambios se guardan en el dispositivo', 'warn'); setSyncLine('Sin conexión · los cambios se subirán al volver la conexión.'); });
+  window.addEventListener('online', () => setStatus('Conexión recuperada', 'ok'));
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && !$('#app').hidden && !sheetCtx) renderAll();
+  });
+  setInterval(() => {
+    updateCountdown();
+    if (todayISO() !== lastRenderDay && !sheetCtx) renderAll();     // cambio de día a medianoche
+  }, 30000);
+}
+
+boot();
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+</script>
+</body>
+</html>
